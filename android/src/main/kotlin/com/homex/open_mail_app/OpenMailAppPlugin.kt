@@ -13,38 +13,17 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.PluginRegistry.Registrar
 
 class OpenMailAppPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var applicationContext: Context
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        // Although getFlutterEngine is deprecated we still need to use it for
-        // apps not updated to Flutter Android v2 embedding
-        channel = MethodChannel(flutterPluginBinding.flutterEngine.dartExecutor, "open_mail_app")
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "open_mail_app")
         channel.setMethodCallHandler(this)
         init(flutterPluginBinding.applicationContext)
     }
 
-    // This static function is optional and equivalent to onAttachedToEngine. It supports the old
-    // pre-Flutter-1.12 Android projects. You are encouraged to continue supporting
-    // plugin registration via this function while apps migrate to use the new Android APIs
-    // post-flutter-1.12 via https://flutter.dev/go/android-project-migration.
-    //
-    // It is encouraged to share logic between onAttachedToEngine and registerWith to keep
-    // them functionally equivalent. Only one of onAttachedToEngine or registerWith will be called
-    // depending on the user's project. onAttachedToEngine or registerWith must both be defined
-    // in the same class.
-    companion object {
-        @JvmStatic
-        fun registerWith(registrar: Registrar) {
-            val channel = MethodChannel(registrar.messenger(), "open_mail_app")
-            val plugin = OpenMailAppPlugin()
-            channel.setMethodCallHandler(plugin)
-            plugin.init(registrar.context())
-        }
-    }
 
     fun init(context: Context) {
         applicationContext = context
@@ -58,10 +37,12 @@ class OpenMailAppPlugin : FlutterPlugin, MethodCallHandler {
             val opened = specificEmailAppIntent(call.argument("name")!!)
             result.success(opened)
         } else if (call.method == "composeNewEmailInMailApp") {
-            val opened = composeNewEmailAppIntent(call.argument("nativePickerTitle") ?: "", call.argument("emailContent") ?: "")
+            val opened = composeNewEmailAppIntent(call.argument("nativePickerTitle")
+                    ?: "", call.argument("emailContent") ?: "")
             result.success(opened)
         } else if (call.method == "composeNewEmailInSpecificMailApp") {
-            val opened = composeNewEmailInSpecificEmailAppIntent(call.argument("name") ?: "", call.argument("emailContent") ?: "")
+            val opened = composeNewEmailInSpecificEmailAppIntent(call.argument("name")
+                    ?: "", call.argument("emailContent") ?: "")
             result.success(opened)
         } else if (call.method == "getMainApps") {
             val apps = getInstalledMailApps()
@@ -136,7 +117,7 @@ class OpenMailAppPlugin : FlutterPlugin, MethodCallHandler {
             for (i in 1 until activitiesHandlingEmails.size) {
                 val activityHandlingEmail = activitiesHandlingEmails[i]
                 val packageName = activityHandlingEmail.activityInfo.packageName
-                    emailComposingIntents.add(
+                emailComposingIntents.add(
                         LabeledIntent(
                                 Intent(Intent.ACTION_SENDTO).apply {
                                     data = Uri.parse("mailto:")
@@ -148,11 +129,11 @@ class OpenMailAppPlugin : FlutterPlugin, MethodCallHandler {
                                     putExtra(Intent.EXTRA_SUBJECT, emailContent.subject)
                                     putExtra(Intent.EXTRA_TEXT, emailContent.body)
                                 },
-                            packageName,
-                            activityHandlingEmail.loadLabel(packageManager),
-                            activityHandlingEmail.icon
+                                packageName,
+                                activityHandlingEmail.loadLabel(packageManager),
+                                activityHandlingEmail.icon
                         )
-                    )
+                )
             }
 
             val extraEmailComposingIntents = emailComposingIntents.toTypedArray()
@@ -206,7 +187,7 @@ class OpenMailAppPlugin : FlutterPlugin, MethodCallHandler {
 
         composeEmailIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         applicationContext.startActivity(composeEmailIntent)
-        
+
         return true
     }
 
@@ -232,7 +213,7 @@ data class App(
         @SerializedName("name") val name: String
 )
 
-data class EmailContent (
+data class EmailContent(
 
         @SerializedName("to") val to: List<String>,
         @SerializedName("cc") val cc: List<String>,
